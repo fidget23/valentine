@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Valentine?</title>
+
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: "Trebuchet MS", Arial, sans-serif;
+        background: linear-gradient(135deg, #0b1020, #200b1a);
+        color: white;
+        overflow: hidden;
+      }
+
+      /* hearts canvas behind everything */
+      #hearts {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .card {
+        width: min(700px, 92vw);
+        padding: 26px 26px 22px;
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.10);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+        text-align: center;
+        position: relative;
+        z-index: 1;
+      }
+
+      .sub {
+        margin: 6px 0 0;
+        opacity: 0.9;
+        font-size: 18px;
+        line-height: 1.4;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 44px;
+        letter-spacing: 0.2px;
+      }
+
+      .gifWrap {
+        margin: 16px auto 8px;
+        width: min(320px, 80%);
+        border-radius: 18px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.08);
+        box-shadow: 0 14px 30px rgba(0, 0, 0, 0.25);
+      }
+
+      .gifWrap img {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+
+      @keyframes popIn {
+        0% { transform: scale(0.85); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+      }
+
+      .gifWrap.show {
+        animation: popIn 0.35s ease-out;
+      }
+
+      /* Invisible boundary inside the card */
+      .arena {
+        margin-top: 14px;
+        width: 100%;
+        height: 190px;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 12px;
+      }
+
+      button {
+        border: none;
+        padding: 12px 18px;
+        border-radius: 999px;
+        font-size: 16px;
+        cursor: pointer;
+        font-weight: 800;
+        letter-spacing: 0.2px;
+      }
+
+      #yesBtn {
+        background: rgba(255, 77, 136, 0.92);
+        color: white;
+        transition: transform 0.15s ease;
+        z-index: 1;
+      }
+      #yesBtn:hover {
+        transform: scale(1.06);
+      }
+
+      #noBtn {
+        background: rgba(255, 255, 255, 0.16);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        transition: left 0.16s ease, top 0.16s ease, transform 0.12s ease;
+        will-change: left, top;
+        z-index: 2;
+      }
+      #noBtn:hover {
+        transform: scale(1.03);
+      }
+
+      #msg {
+        margin-top: 14px;
+        font-size: 18px;
+        display: none;
+        opacity: 0.95;
+      }
+
+      .tiny {
+        margin-top: 10px;
+        font-size: 13px;
+        opacity: 0.6;
+      }
+    </style>
+  </head>
+
+  <body>
+    <canvas id="hearts"></canvas>
+
+    <div class="card">
+      <h1>Hey Beautiful ❤️</h1>
+      <p class="sub">Will you be my Valentine?</p>
+
+      <!-- GIF is hidden until YES is clicked -->
+      <div class="gifWrap" id="gifWrap" hidden>
+        <!-- Put bears.gif in the same folder as index.html -->
+        <img src="bears.gif" alt="Cute bears kissing" />
+      </div>
+
+      <div class="arena" id="arena">
+        <button id="yesBtn">YES 😄</button>
+        <button id="noBtn">NO 😢</button>
+      </div>
+
+      <p id="msg"></p>
+      <div class="tiny">ps: the NO button is a litle shy… 🥺</div>
+    </div>
+
+    <script>
+      // ---------------- Hearts background (white) ----------------
+      const canvas = document.getElementById("hearts");
+      const ctx = canvas.getContext("2d");
+
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      window.addEventListener("resize", resize);
+      resize();
+
+      function drawHeart(x, y, size, alpha) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(size, size);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.bezierCurveTo(-1, -1, -2, 1, 0, 2);
+        ctx.bezierCurveTo(2, 1, 1, -1, 0, 0);
+        ctx.closePath();
+        ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+        ctx.fill();
+        ctx.restore();
+      }
+
+      const hearts = [];
+      function spawnHeart() {
+        hearts.push({
+          x: Math.random() * canvas.width,
+          y: canvas.height + 20,
+          s: 0.9 + Math.random() * 1.4,
+          v: 0.6 + Math.random() * 1.2,
+          drift: (Math.random() - 0.5) * 0.6,
+          a: 0.18 + Math.random() * 0.25,
+        });
+      }
+      setInterval(spawnHeart, 120);
+
+      function animateHearts() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let i = hearts.length - 1; i >= 0; i--) {
+          const h = hearts[i];
+          h.y -= h.v;
+          h.x += h.drift;
+          drawHeart(h.x, h.y, h.s * 8, h.a);
+          if (h.y < -60) hearts.splice(i, 1);
+        }
+        requestAnimationFrame(animateHearts);
+      }
+      animateHearts();
+
+      // ---------------- Buttons + “catchable” NO ----------------
+      const arena = document.getElementById("arena");
+      const yesBtn = document.getElementById("yesBtn");
+      const noBtn = document.getElementById("noBtn");
+      const msg = document.getElementById("msg");
+      const gifWrap = document.getElementById("gifWrap");
+
+      yesBtn.addEventListener("click", () => {
+        msg.style.display = "block";
+        msg.textContent = "YAYY! ❤️❤️❤️ YOUUUU SAID YESSSSSSSSSSS";
+
+        gifWrap.hidden = false;
+        gifWrap.classList.add("show");
+      });
+
+      noBtn.addEventListener("click", () => {
+        msg.style.display = "block";
+        msg.textContent = "NO WAY YOU ACTULLY SAID NOO, Well I only added to be polite but.. your still being my valentine!😈😈";
+      });
+
+      // fast-but-catchable movement inside arena
+      const padding = 10;
+      const triggerDist = 125;
+      const step = 100;
+      const cooldownMs = 75;
+
+      let lastMove = 0;
+      let pinned = false;
+
+      function clamp(v, min, max) {
+        return Math.min(Math.max(v, min), max);
+      }
+
+      function pinNoButtonToArena() {
+        if (pinned) return;
+        const a = arena.getBoundingClientRect();
+        const b = noBtn.getBoundingClientRect();
+        const left = b.left - a.left;
+        const top = b.top - a.top;
+
+        noBtn.style.position = "absolute";
+        noBtn.style.left = left + "px";
+        noBtn.style.top = top + "px";
+        pinned = true;
+      }
+
+      arena.addEventListener("mousemove", (ev) => {
+        const now = Date.now();
+        if (now - lastMove < cooldownMs) return;
+
+        const a = arena.getBoundingClientRect();
+        const b = noBtn.getBoundingClientRect();
+
+        const mx = ev.clientX - a.left;
+        const my = ev.clientY - a.top;
+
+        const bx = b.left - a.left;
+        const by = b.top - a.top;
+        const cx = bx + b.width / 2;
+        const cy = by + b.height / 2;
+
+        const dx = cx - mx;
+        const dy = cy - my;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist > triggerDist) return;
+
+        pinNoButtonToArena();
+
+        const curLeft = parseFloat(noBtn.style.left) || bx;
+        const curTop = parseFloat(noBtn.style.top) || by;
+
+        const ux = dx / (dist || 1);
+        const uy = dy / (dist || 1);
+
+        let nextLeft = curLeft + ux * step;
+        let nextTop = curTop + uy * step;
+
+        const maxLeft = arena.clientWidth - noBtn.offsetWidth - padding;
+        const maxTop = arena.clientHeight - noBtn.offsetHeight - padding;
+
+        nextLeft = clamp(nextLeft, padding, maxLeft);
+        nextTop = clamp(nextTop, padding, maxTop);
+
+        noBtn.style.left = nextLeft + "px";
+        noBtn.style.top = nextTop + "px";
+
+        lastMove = now;
+      });
+    </script>
+  </body>
+</html>
